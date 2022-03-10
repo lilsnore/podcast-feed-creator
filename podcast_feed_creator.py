@@ -13,13 +13,23 @@ class Manager:
             raise ValueError('Give a path to a file')
         if not self._feed_file.exists():
             raise NotImplementedError('Initializating from non existing file still not implemented')
+
         self._content = xml.parse(self._feed_file)
+        xml.indent(self._content, space='\t', level=0)
 
     def export(self):
-        with open(self._feed_file, "w") as f:
-            self._content.write(f)
+        self._content.write(self._feed_file, encoding='utf-8')
 
-    def add_episode(self, title, link, mp3_url, mp3_file, description):
+        # Ugly patch because ElementTree sucks
+        with open(self._feed_file, 'r+') as f:
+            text = f.read()
+            text = text.replace('ns0:', 'itunes:')
+            text = text.replace('ns1:', 'atom:')
+            f.seek(0)
+            f.write(text)
+            f.truncate()
+
+    def add_episode(self, title, link, mp3_url, mp3_file, description, img_url):
         root = self._content.getroot()
         channel = root.find('channel')
         item = xml.SubElement(channel, 'item')
@@ -42,10 +52,17 @@ class Manager:
         pubdate_elem.text = self._get_pub_date()
 
         duration_elem = xml.SubElement(item, 'itunes:duration')
-        duration_elem.text =
+        duration_elem.text = self._get_duration(mp3_file)
 
+        type_elem = xml.SubElement(item, 'itunes:episodeType')
+        type_elem.text = 'full'
 
-        #channel.append(item)
+        guid_elem = xml.SubElement(item, 'guid')
+        id = link.split('_')[-2]
+        guid_elem.text = f'https://www.ivoox.com/{id}'
+
+        img_elem = xml.SubElement(item, 'itunes:image')
+        img_elem.set('href', img_url)
 
     def _get_pub_date(self):
         now = datetime.now()
