@@ -15,16 +15,18 @@ class Manager:
             raise NotImplementedError('Initializating from non existing file still not implemented')
 
         self._content = xml.parse(self._feed_file)
-        xml.indent(self._content, space='\t', level=0)
 
     def export(self):
+        xml.indent(self._content, space='\t', level=0)
         self._content.write(self._feed_file, encoding='utf-8')
 
         # Ugly patch because ElementTree sucks
         with open(self._feed_file, 'r+') as f:
             text = f.read()
             text = text.replace('ns0:', 'itunes:')
+            text = text.replace(':ns0', ':itunes')
             text = text.replace('ns1:', 'atom:')
+            text = text.replace(':ns1', ':atom')
             f.seek(0)
             f.write(text)
             f.truncate()
